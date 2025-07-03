@@ -66,7 +66,7 @@ jobs:
 
       # Step 5: Upload the scan results to the CALLER's security tab
       - name: Upload Trivy scan results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results-${{ inputs.service-name }}.sarif'
