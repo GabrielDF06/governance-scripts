@@ -29,8 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write # Required for uploading SARIF results
-      actions: read
+      # security-events: write # Required for uploading SARIF results
+      # actions: read
 
     steps:
       # Step 1: Checkout the code of the CALLER's repository
