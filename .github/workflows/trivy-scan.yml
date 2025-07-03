@@ -65,9 +65,14 @@ jobs:
           ignore-unfixed: true
           exit-code: '0'
 
-      # Step 5: Upload the scan results to the CALLER's security tab
-      - name: Upload Trivy scan results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+      # Step 5: Upload the scan results as a downloadable artifact
+      - name: Upload Trivy scan results as an artifact
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: 'trivy-results-${{ inputs.service-name }}.sarif'
+          # The name of the artifact that will appear in the workflow run
+          name: trivy-scan-report-${{ inputs.service-name }}
+          # The path to the file(s) to upload
+          path: 'trivy-results-${{ inputs.service-name }}.sarif'
+          # How long to keep the artifact (optional, default is 90 days)
+          retention-days: 7
