@@ -1,0 +1,72 @@
+name: Trivy Scan
+
+# This workflow is triggered by a call from another workflow
+on:
+  workflow_call:
+    # Define the inputs that the caller workflow must provide
+    inputs:
+      service-name:
+        description: 'The name of the service (e.g., backend, frontend)'
+        required: true
+        type: string
+      service-context-path:
+        description: 'The path to the Docker build context for the service'
+        required: true
+        type: string
+      image-name:
+        description: 'The full name of the image to build and scan'
+        required: true
+        type: string
+    # Define the secrets that the caller workflow must pass down
+    secrets:
+      GH_TOKEN:
+        description: 'A GITHUB_TOKEN with packages:write and security-events:write permissions'
+        required: true
+
+jobs:
+  build-and-scan:
+    name: Build & Scan ${{ inputs.service-name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # Required for uploading SARIF results
+
+    steps:
+      # Step 1: Checkout the code of the CALLER's repository
+      - name: Checkout Caller's Code
+        uses: actions/checkout@v4
+
+      # Step 2: Log in to GHCR using the secret passed from the caller
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }} # This is the actor from the caller workflow
+          password: ${{ secrets.GH_TOKEN }}
+
+      # Step 3: Build the image locally for scanning
+      - name: Build image for scanning
+        uses: docker/build-push-action@v4
+        with:
+          context: ${{ inputs.service-context-path }}
+          load: true
+          tags: ${{ inputs.image-name }}:pr-${{ github.event.pull_request.number || github.sha }}
+          push: false
+
+      # Step 4: Run Trivy Scan on the locally built image
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ inputs.image-name }}:pr-${{ github.event.pull_request.number || github.sha }}
+          format: 'sarif'
+          output: 'trivy-results-${{ inputs.service-name }}.sarif'
+          severity: 'HIGH,CRITICAL'
+          ignore-unfixed: true
+          exit-code: '1'
+
+      # Step 5: Upload the scan results to the CALLER's security tab
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results-${{ inputs.service-name }}.sarif'
