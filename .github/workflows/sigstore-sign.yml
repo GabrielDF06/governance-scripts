@@ -1,0 +1,37 @@
+name: Sigstore Signing
+
+on:
+  workflow_call:
+    inputs:
+      image-digest:
+        description: 'The full image digest (image@sha256:...) to be signed'
+        required: true
+        type: string
+    secrets:
+      GH_TOKEN:
+        description: 'A GITHUB_TOKEN with packages:write permission'
+        required: true
+
+jobs:
+  sign-image:
+    name: Sign Container Image
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # Required to get an OIDC token from GitHub.
+      packages: write   # Required to write the signature to GHCR.
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_TOKEN }}
+
+      - name: Sign the container image
+        # The 'cosign sign' command will automatically use the OIDC token from the runner,
+        # contact Fulcio for a certificate, and upload the signature to Rekor.
+        run: cosign sign --yes ${{ inputs.image-digest }}
