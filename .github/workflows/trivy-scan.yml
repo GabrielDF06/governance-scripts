@@ -54,11 +54,11 @@ jobs:
           tags: ${{ steps.image_tag.outputs.tag }}
           push: false
 
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy for SARIF report and security gate
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.image_tag.outputs.tag }}
-          format: 'table,sarif'
+          format: 'sarif'
           output: 'trivy-results-${{ inputs.service-name }}.sarif'
           severity: 'HIGH,CRITICAL'
           ignore-unfixed: true
