@@ -1,4 +1,4 @@
-name: Sigstore Signing
+name: Reusable Sigstore Signing
 
 on:
   workflow_call:
