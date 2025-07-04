@@ -42,12 +42,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GH_TOKEN }}
 
-      # We will create a unique tag for this build to reference locally
       - name: Generate unique image tag
         id: image_tag
         run: echo "tag=${{ inputs.image-name }}:ci-${{ github.run_id }}-${{ github.run_attempt }}" >> $GITHUB_OUTPUT
 
-      # Step 1: Build the image and load it locally
       - name: Build image for scanning
         uses: docker/build-push-action@v4
         with:
@@ -56,21 +54,29 @@ jobs:
           tags: ${{ steps.image_tag.outputs.tag }}
           push: false
 
-      # Step 2: Run Trivy Scan. This will now FAIL the build if vulnerabilities are found.
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.image_tag.outputs.tag }}
-          format: 'table' # Changed to table for cleaner log output
+          format: 'table,sarif'
+          output: 'trivy-results-${{ inputs.service-name }}.sarif'
           severity: 'HIGH,CRITICAL'
           ignore-unfixed: true
-          exit-code: '1' # This will fail the job and stop the entire workflow
+          exit-code: '1'
 
-      # Step 3: If scan passes, save the image to a tarball
+      - name: Upload Trivy scan report as an artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report-${{ inputs.service-name }}
+          path: 'trivy-results-${{ inputs.service-name }}.sarif'
+          retention-days: 7
+
+      # This step will only run if the Trivy scan above SUCCEEDS
       - name: Save Docker image to tarball
         run: docker save ${{ steps.image_tag.outputs.tag }} -o ${{ inputs.service-name }}.tar
 
-      # Step 4: Upload the tarball as an artifact
+      # This step will also only run if the Trivy scan SUCCEEDS
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
         with:
