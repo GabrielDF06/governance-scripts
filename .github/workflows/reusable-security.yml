@@ -2,6 +2,9 @@ name: Reusable Security Checks
 
 on:
   workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        required: true
 
 jobs:
   # Scan Node.js dependencies for vulnerabilities
@@ -12,8 +15,11 @@ jobs:
       matrix:
         service: [backend, frontend]
     steps:
-      - name: Checkout Code
+      - name: Checkout Caller's Code
         uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,8 +37,11 @@ jobs:
     name: Scan Dependencies (Python)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Caller's Code
         uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5

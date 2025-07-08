@@ -2,36 +2,49 @@ name: Reusable Linters and Formatters
 
 on:
   workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        required: true
 
 jobs:
   lint-js:
-    name: Lint & Format (JS/TS)
+    name: Lint & Format (${{ matrix.service }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [backend, frontend]
     steps:
-      - name: Checkout Code
+      - name: Checkout Caller's Code
         uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      
+          cache-dependency-path: '${{ matrix.service }}/package-lock.json'
       - name: Install JS Dependencies
+        working-directory: ./${{ matrix.service }}
         run: npm ci
-
       - name: Run ESLint
+        working-directory: ./${{ matrix.service }}
         run: npx eslint . --ext .js,.jsx,.ts,.tsx
-
       - name: Check Prettier Formatting
+        working-directory: ./${{ matrix.service }}
         run: npx prettier --check .
 
   lint-python:
     name: Format (Python)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Caller's Code
         uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -48,8 +61,11 @@ jobs:
     name: Lint (Shell Scripts)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Caller's Code
         uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@2.0.0
