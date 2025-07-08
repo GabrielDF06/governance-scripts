@@ -45,13 +45,27 @@ jobs:
           repository: ${{ github.repository }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check for requirements.txt
+        id: check_file
+        run: |
+          if [[ -f "./backend/requirements.txt" ]]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Python
+        if: steps.check_file.outputs.exists == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install pip-audit
-        run: pip install pip-audit
-
-      - name: Run pip-audit
-        run: pip-audit -r requirements.txt
+      - name: Install and Run pip-audit
+        if: steps.check_file.outputs.exists == 'true'
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt
+      
+      - name: Skip Python Scan
+        if: steps.check_file.outputs.exists == 'false'
+        run: echo "No backend/requirements.txt found, skipping Python dependency scan."
