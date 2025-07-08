@@ -2,6 +2,11 @@ name: Reusable Security Checks
 
 on:
   workflow_call:
+    secrets:
+      GH_TOKEN:
+        description: 'A GITHUB_TOKEN with packages:write permission'
+        required: true
+
 
 jobs:
   # Scan Node.js dependencies for vulnerabilities
